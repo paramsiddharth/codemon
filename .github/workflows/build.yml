@@ -1,0 +1,66 @@
+name: Build and run
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest] #, windows-latest]
+        python-version: [3.6] #, 3.8]
+    env:
+      PYTHONIOENCODING: UTF-8
+
+    steps:
+    - uses: actions/checkout@v2
+    - if: matrix.os == 'windows-latest'
+      run: chcp 65001
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install -U pip
+        pip install wheel setuptools
+    - name: Build Wheel
+      run: python setup.py bdist_wheel
+    - name: Install using PIP
+      run: pip install .
+    - name: Run Codemon
+      run: codemon
+        
+  test:
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest] #, windows-latest]
+        python-version: [3.6] #, 3.8]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install -U pip
+        pip install wheel setuptools
+    - name: Install using PIP
+      run: pip install .
+    - name: Test codemon --help
+      run: codemon --help
+    - name: Generate metadata
+      run: |
+        mkdir ~/.codemon
+        echo '{ "name": "myname", "codeforces_username": "testcu", "codeforces_password": "testpu", "github_username": "testgu", "github_password": "testgp" }' >~/.codemon/meta.json
+    - name: Test codemon init
+      run: codemon init 794C
+    - name: Test codemon init -n
+      run: |
+        cd 794C
+        codemon init -n newfile.cpp
+    - name: Test codemon fetch
+      run: codemon fetch
